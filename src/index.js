@@ -10,9 +10,18 @@ import connectDB from "./db/index.js"
 //2nd
 
 dotenv.config({
-    path:'./env'
+    path:'./.env'
 })
 connectDB()
+.then(() => {
+    application.listen(process.env.PORT || 8000, () =>{
+        console.log(`Server is running in : ${process.env.PORT}`);
+    })
+})
+.catch((error) =>
+{
+console.log("Mongo failed", error);
+})
 
 
 
@@ -58,3 +67,5 @@ catch(error)
 })()
 */
 //IIFE APPROACH HAI PHATAFAT CONNECT KARWATA HAI
+// MIDDLEWARE USE KARTE HAIN APP.USE() KARTE HAIN
+//
