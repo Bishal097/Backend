@@ -16,3 +16,6 @@ app.use(express.urlencoded({extended:true, limit: "10kb"})) // extended matlab o
 //limit: "10kb": Yeh limit set karta hai ki maximum 10 kilobytes data hi parse hoga.
 app.use(express.static("public")) // images ya pdf koi chiz aata hai toh public meh store hoga
 app.use(cookieParser()) //cookie peh CRUD operation hota hai
+
+
+// 
