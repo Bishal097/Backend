@@ -6,7 +6,7 @@
 //require('dotenv').config({path:'./env'}) 1st choice
 import dotenv from "dotenv"
 import connectDB from "./db/index.js"
-
+import {app} from './app.js'
 //2nd
 
 dotenv.config({
@@ -14,7 +14,7 @@ dotenv.config({
 })
 connectDB()
 .then(() => {
-    application.listen(process.env.PORT || 8000, () =>{
+    app.listen(process.env.PORT || 8000, () =>{
         console.log(`Server is running in : ${process.env.PORT}`);
     })
 })

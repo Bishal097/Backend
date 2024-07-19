@@ -17,5 +17,13 @@ app.use(express.urlencoded({extended:true, limit: "10kb"})) // extended matlab o
 app.use(express.static("public")) // images ya pdf koi chiz aata hai toh public meh store hoga
 app.use(cookieParser()) //cookie peh CRUD operation hota hai
 
+// routes import
+import userRouter from './routes/user.routes.js'
 
-// 
+
+// routes declaration
+app.use("/api/v1/users",userRouter) //best pracise hai api konsa hai and version likhna nhi toh user likhne seh bhi hoga and then control user pass jake vha seh navigate hoga
+
+//http://localhost:8000/api/v1/user
+
+export {app}
