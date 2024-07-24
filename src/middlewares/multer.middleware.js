@@ -5,7 +5,7 @@ const storage = multer.diskStorage({ // disk storage use kar rhe hain due to mem
       cb(null, "./public/temp")
     },
     filename: function (req, file, cb) {
-      
+      //console.log('Filename function called', file.originalname);
       cb(null, file.originalname)
     }
   })
