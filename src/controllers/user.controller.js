@@ -297,6 +297,19 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
       
   }
 
+  const userd = await User.findById(req.user?._id);
+  const currentAvatarUrl = user?.avatar;
+
+  if (currentAvatarUrl) {
+    const publicId = extractPublicId(currentAvatarUrl);
+    try {
+      await deleteFromCloudinary(publicId);
+    } catch (error) {
+      console.error("Error deleting previous avatar:", error);
+      throw new ApiError(500, "Error deleting previous avatar");
+    }
+  }
+
   const user = await User.findByIdAndUpdate(
       req.user?._id,
       {
@@ -323,13 +336,27 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
   }
 
   //TODO: delete old image - assignment
+    const userd= await User.findById(req.user?._id)
 
+    const currentCoverImage =user?.avatar;
+    if(!currentCoverImage)
+    {
+      throw new ApiError(400, "User has not uploaded any cover image")
+    }
+
+    const pid = extractPublicId(currentCoverImage)
+    try{
+     await deleteFromCloudinary(pid)
+    }
+    catch(error)
+    {
+      throw new ApiError(500, "Error deleting previous avatar");
+    }
 
   const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
   if (!coverImage.url) {
-      throw new ApiError(400, "Error while uploading on avatar")
-      
+      throw new ApiError(400, "Error while uploading on avatar")     
   }
 
   const user = await User.findByIdAndUpdate(
@@ -350,6 +377,147 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
 })
 
 
+const getUserChannelProfile = asyncHandler(async(req, res) => {
+  const{username} =req.params
+  if(!username?.trim())
+  {
+    throw new ApiError(400, "USERNAME IS MISSING");
+  }
+  
+  const channel =await User.aggregate([
+
+    {
+      $match: {
+          username:username?.toLowerCase()
+     }
+    },
+    {
+       $lookup:{           //look up join karne k liye help karta hai
+        from: "Subscription", // from matlab konse table eh dekhu
+        localField:"-id", //kis k base meh join karna  hai
+        foreignField:"channel",// 2nd table meh konsa join karna hai
+        as:"subscribers" // name hai bss
+       }
+    },
+    //Purpose: This stage performs a join operation with the subscriptions collection to find all subscription documents where this user is listed as a channel.
+//localField: _id (User ID in the User collection)
+//foreignField: channel (Channel ID in the subscriptions collection)
+//as: subscribers (The result of the join will be stored in this field)
+    {
+       $lookup:{
+        from: "Subscription",
+        localField:"-id",
+        foreignField:"subscriber",
+        as:"subscribedTo"
+       }
+    },
+    //Purpose: This stage performs another join operation with the subscriptions collection to find all subscription documents where this user is listed as a subscriber.
+//localField: _id (User ID in the User collection)
+//foreignField: subscriber (Subscriber ID in the subscriptions collection)
+//as: subscribedTo (The result of the join will be stored in this field)
+    //
+    {
+      $addFields:{
+        subscribersCount:{
+           $size:"$subscribers"
+        },
+       channelsSubscribedToCount:{
+         $size:"subscribedTo"
+       },
+       isSubscribed:{
+        $cond: {
+           if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+           then: true,
+           else: false
+          }},
+      },
+    },
+    {
+      $project:{
+        fullName:1,
+        username: 1,
+        subscribersCount: 1,
+        channelsSubscribedToCount: 1,
+        isSubscribed: 1,
+        avatar: 1,
+        coverImage: 1,
+        email: 1
+      }
+    }
+  ])
+
+ if(!channel.length)
+ {
+  throw new ApiError(404,"Channel Doesnot Exist")
+ }
+ return res
+    .status(200)
+    .json(
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
+    )
+
+})
+
+const getWatchHistory = asyncHandler(async(req,res) =>{
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user._id)
+      }
+    },
+    {
+      $lookup: {
+        from:"videos",
+        localField:"watchHistory",
+        foreignField:"_id",
+        as:"watchHistory",
+        pipeline:[
+          {
+            $lookup: {
+              from:"users",
+              localfield:"owner",
+              foreignField:"-id",
+              as:"owner",
+              pipeline:[
+                {
+                  $project:{
+                    fullName: 1,
+                    username: 1,
+                    avatar: 1
+
+                  }
+                }
+              ]
+
+            }
+          }
+        ]
+
+      }
+    },
+    //
+    {
+      $addFields:{
+        owner:{
+          $first:"$owner"
+        }
+      }
+    }
+  ])
+
+  return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,
+            "Watch history fetched successfully"
+        )
+    )
+})
+
+
+
 
 export { 
   registerUser,
@@ -360,6 +528,7 @@ export {
   getCurrentUser,
   updateAccountDetails,
   updateUserAvatar,
-  updateUserCoverImage
+  updateUserCoverImage,
+  getUserChannelProfile
 };
 // field kyuki user route meh object except karta hai
